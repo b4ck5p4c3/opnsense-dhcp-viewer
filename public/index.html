@@ -100,6 +100,14 @@
       text-align: center;
     }
 
+    .vendor-text {
+      font-size: x-small;
+    }
+
+    .mac-td>div {
+      background-color: transparent;
+    }
+
     @media (prefers-color-scheme: dark) {
       * {
         background: #111;
@@ -221,7 +229,16 @@
           tr.appendChild(createTD(entry.ip))
           tr.appendChild(createTD(entry.network === 'internal' ? '🏠' : (entry.network === 'guest' ? '👥' : entry.network), true))
           tr.appendChild(createTD(entry.hostname))
-          tr.appendChild(createTD(entry.mac.toUpperCase()))
+          const macTd = document.createElement('td')
+          macTd.classList.add('mac-td')
+          const macText = document.createElement('div')
+          macText.innerText = entry.mac
+          macTd.appendChild(macText)
+          const vendorText = document.createElement('div')
+          vendorText.classList.add('vendor-text')
+          vendorText.append(entry.ouiVendor)
+          macTd.appendChild(vendorText)
+          tr.appendChild(macTd)
           tr.appendChild(createTD(entry.startedAt ? new Date(entry.startedAt).toLocaleString() : '-'))
           tr.appendChild(createTD(entry.description))
           tr.classList.add(entry.isOnline ? 'entry-online' : 'entry-offline')

@@ -26,6 +26,9 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
+      mac-oui-lookup:
+        specifier: ^1.1.4
+        version: 1.1.4
       tslog:
         specifier: ^4.10.2
         version: 4.10.2
@@ -1197,6 +1200,9 @@ packages:
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
+
+  mac-oui-lookup@1.1.4:
+    resolution: {integrity: sha512-VuzR8PnMef92j86Mspx8gRwEtW3DjIR2xu2G5x3ezszdopEjVhrrI0r9SpkfPqJMQbsbWRnJrFxTKMXiUaJHHQ==}
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -3039,6 +3045,8 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
+
+  mac-oui-lookup@1.1.4: {}
 
   math-intrinsics@1.1.0: {}
 

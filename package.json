@@ -17,6 +17,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9.39.4",
     "express": "^5.2.1",
+    "mac-oui-lookup": "^1.1.4",
     "tslog": "^4.10.2",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",

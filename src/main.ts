@@ -1,4 +1,5 @@
 import express from 'express'
+import getVendor from 'mac-oui-lookup'
 import path from 'node:path'
 import z from 'zod'
 
@@ -35,6 +36,7 @@ interface ParsedDHCPEntry {
   isStatic: boolean,
   mac: string,
   network: string,
+  ouiVendor: string,
   startedAt: null | string
 }
 
@@ -61,6 +63,7 @@ function parseOpnSenseDhcpResponse (result: z.infer<typeof opnSenseDhcpResponseT
     isStatic: row.type === 'static',
     mac: row.mac,
     network: row.if_descr,
+    ouiVendor: getVendor(row.mac) ?? 'N/A',
     startedAt: parseOpnSenseDate(row.starts)?.toISOString() ?? null
   }))
 }
