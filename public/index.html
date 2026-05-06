@@ -212,7 +212,7 @@
           const tr = document.createElement('tr')
           tr.appendChild(createTD(entry.isStatic ? '💅' : ''))
           tr.appendChild(createTD(entry.ip))
-          tr.appendChild(createTD(entry.network))
+          tr.appendChild(createTD(entry.network === 'internal' ? '🏠' : (entry.network === 'guest' ? '👥' : entry.network)))
           tr.appendChild(createTD(entry.hostname))
           tr.appendChild(createTD(entry.mac))
           tr.appendChild(createTD(entry.startedAt ? new Date(entry.startedAt).toLocaleString() : '-'))
