@@ -96,6 +96,10 @@
       cursor: default;
     }
 
+    .centered {
+      text-align: center;
+    }
+
     @media (prefers-color-scheme: dark) {
       * {
         background: #111;
@@ -163,7 +167,7 @@
           <tr>
             <th></th>
             <th>IP</th>
-            <th>Network</th>
+            <th>Net</th>
             <th>Hostname</th>
             <th>MAC</th>
             <th>Started</th>
@@ -199,8 +203,11 @@
         show(errorBlock)
       }
 
-      function createTD(text) {
+      function createTD(text, isCentered) {
         const element = document.createElement('td')
+        if (isCentered) {
+          element.classList.add('centered')
+        }
         element.innerText = text
         return element
       }
@@ -210,11 +217,11 @@
         tableBody.innerHTML = ''
         for (const entry of entries) {
           const tr = document.createElement('tr')
-          tr.appendChild(createTD(entry.isStatic ? '💅' : ''))
+          tr.appendChild(createTD(entry.isStatic ? '💅' : '', true))
           tr.appendChild(createTD(entry.ip))
-          tr.appendChild(createTD(entry.network === 'internal' ? '🏠' : (entry.network === 'guest' ? '👥' : entry.network)))
+          tr.appendChild(createTD(entry.network === 'internal' ? '🏠' : (entry.network === 'guest' ? '👥' : entry.network, true)))
           tr.appendChild(createTD(entry.hostname))
-          tr.appendChild(createTD(entry.mac))
+          tr.appendChild(createTD(entry.mac.toUpperCase()))
           tr.appendChild(createTD(entry.startedAt ? new Date(entry.startedAt).toLocaleString() : '-'))
           tr.appendChild(createTD(entry.description))
           tr.classList.add(entry.isOnline ? 'entry-online' : 'entry-offline')
