@@ -5,7 +5,7 @@ RUN corepack enable && pnpm install
 
 # install bksp certificate
 RUN apk update && apk add curl
-RUN curl -fSsl https://ca.bksp.in/root/bksp-root.crt >> /etc/ssl/certs/B4CKSP4CE_Root_CA.crt
+RUN curl -fSsl https://ca.bksp.in/root/bksp-root.crt >> /etc/ssl/certs/ca-certificates.crt
 
 COPY . .
 CMD ["pnpm", "start"]
