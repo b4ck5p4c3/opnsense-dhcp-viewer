@@ -163,6 +163,7 @@
           <tr>
             <th></th>
             <th>IP</th>
+            <th>Network</th>
             <th>Hostname</th>
             <th>MAC</th>
             <th>Started</th>
@@ -205,12 +206,13 @@
       }
 
       function showEntries(entries) {
-        entries.sort((a, b) => -(a.startedAt ?? '').localeCompare(b.startedAt ?? ''))
+        entries.sort((a, b) => (-(a.startedAt ?? '').localeCompare(b.startedAt ?? '')) || a.network.localeCompare(b.network))
         tableBody.innerHTML = ''
         for (const entry of entries) {
           const tr = document.createElement('tr')
           tr.appendChild(createTD(entry.isStatic ? '💅' : ''))
           tr.appendChild(createTD(entry.ip))
+          tr.appendChild(createTD(entry.network))
           tr.appendChild(createTD(entry.hostname))
           tr.appendChild(createTD(entry.mac))
           tr.appendChild(createTD(entry.startedAt ? new Date(entry.startedAt).toLocaleString() : '-'))

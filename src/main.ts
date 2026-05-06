@@ -18,6 +18,7 @@ const opnSenseDhcpResponseType = z.object({
     address: z.string(),
     descr: z.string(),
     hostname: z.string(),
+    if_descr: z.string(),
     mac: z.string(),
     starts: z.string(),
     status: z.union([z.literal('offline'), z.literal('online')]),
@@ -33,6 +34,7 @@ interface ParsedDHCPEntry {
   isOnline: boolean,
   isStatic: boolean,
   mac: string,
+  network: string,
   startedAt: null | string
 }
 
@@ -58,6 +60,7 @@ function parseOpnSenseDhcpResponse (result: z.infer<typeof opnSenseDhcpResponseT
     isOnline: row.status === 'online',
     isStatic: row.type === 'static',
     mac: row.mac,
+    network: row.if_descr,
     startedAt: parseOpnSenseDate(row.starts)?.toISOString() ?? null
   }))
 }
