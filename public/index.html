@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OPNsense DHCP viewer</title>
+  <style>
+    * {
+      font-family: monospace;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    header {
+      margin-top: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+
+    main {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .error {
+      color: #842029;
+      background-color: #f8d7da;
+      border: 1px solid #f5c2c7;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .dhcp-table {
+      width: 100%;
+      text-align: left;
+      margin-bottom: 20px;
+    }
+
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: larger;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .dhcp-table>tbody>tr>td {
+      padding: 5px;
+    }
+
+    .dhcp-table>thead>tr>th {
+      text-align: center;
+      padding: 5px;
+    }
+
+    .entry-online>td {
+      background-color: hsl(120 100% 90%);
+    }
+
+    .entry-offline>td {
+      background-color: hsl(0 100% 90%);
+    }
+
+    button {
+      padding: 10px;
+      cursor: pointer;
+      border-radius: 0;
+      background-color: white;
+      border: 1px solid black;
+    }
+
+    button:hover {
+      background-color: #DDD;
+    }
+
+    button:active {
+      background-color: #EEE;
+    }
+
+    button:disabled {
+      color: #999;
+      border-color: #999;
+      cursor: default;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      * {
+        background: #111;
+        color: white;
+      }
+
+      button {
+        border-radius: 0;
+        background-color: #111;
+        border: 1px solid white;
+      }
+
+      button:hover {
+        background-color: #333;
+      }
+
+      button:active {
+        background-color: #222;
+      }
+
+      button:disabled {
+        border-color: #888;
+        color: #888;
+        background-color: #111;
+      }
+
+      .entry-online>td {
+        background-color: hsl(120 100% 15%);
+      }
+
+      .entry-offline>td {
+        background-color: hsl(0 100% 15%);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h2>OPNsense DHCP dashboard</h2>
+      <button id="refresh-button" disabled="disabled">Refresh</button>
+    </header>
+    <hr />
+    <main>
+      <div class="loading" id="loading-block">
+        Loading...
+      </div>
+      <div class="error" id="error-block" hidden="hidden">
+        <b>Error:</b>
+        <div id="error-text"></div>
+      </div>
+      <table class="dhcp-table" id="table-block" hidden="hidden">
+        <thead>
+          <tr>
+            <th></th>
+            <th>IP</th>
+            <th>Hostname</th>
+            <th>MAC</th>
+            <th>Started</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+        </tbody>
+      </table>
+    </main>
+  </div>
+
+  <script>
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const refreshButton = document.querySelector('#refresh-button')
+      const errorBlock = document.querySelector('#error-block')
+      const errorText = document.querySelector('#error-text')
+      const loadingBlock = document.querySelector('#loading-block')
+      const tableBlock = document.querySelector('#table-block')
+      const tableBody = document.querySelector('#table-body')
+
+      function hide(element) {
+        element.setAttribute('hidden', 'hidden')
+      }
+
+      function show(element) {
+        element.removeAttribute('hidden')
+      }
+
+      function showError(error) {
+        errorText.innerText = String(error)
+        show(errorBlock)
+      }
+
+      function createTD(text) {
+        const element = document.createElement('td')
+        element.innerText = text
+        return element
+      }
+
+      function showEntries(entries) {
+        entries.sort((a, b) => -(a.startedAt ?? '').localeCompare(b.startedAt ?? ''))
+        tableBody.innerHTML = ''
+        for (const entry of entries) {
+          const tr = document.createElement('tr')
+          tr.appendChild(createTD(entry.isStatic ? '💅' : ''))
+          tr.appendChild(createTD(entry.ip))
+          tr.appendChild(createTD(entry.hostname))
+          tr.appendChild(createTD(entry.mac))
+          tr.appendChild(createTD(entry.startedAt ? new Date(entry.startedAt).toLocaleString() : '-'))
+          tr.appendChild(createTD(entry.description))
+          tr.classList.add(entry.isOnline ? 'entry-online' : 'entry-offline')
+          tableBody.appendChild(tr)
+        }
+        show(tableBlock)
+      }
+
+      function fetchLeases() {
+        refreshButton.setAttribute('disabled', 'disabled')
+        hide(errorBlock)
+        hide(tableBlock)
+        show(loadingBlock)
+
+        fetch('/api/leases')
+          .then(response => response.json())
+          .then(response => {
+            if ('error' in response) {
+              showError(response.error)
+            } else {
+              showEntries(response)
+            }
+          })
+          .catch(error => showError(error))
+          .finally(() => {
+            hide(loadingBlock)
+            refreshButton.removeAttribute('disabled')
+          })
+      }
+
+      refreshButton.addEventListener('click', () => fetchLeases())
+      fetchLeases()
+    })
+  </script>
+</body>
+
+</html>

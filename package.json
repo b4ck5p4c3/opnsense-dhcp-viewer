@@ -1,0 +1,25 @@
+{
+  "name": "opnsense-dhcp-viewer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsx src/main.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.23.0",
+  "dependencies": {
+    "@bksp/style-guide": "^1.5.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.6.0",
+    "dotenv": "^17.4.2",
+    "eslint": "^9.39.4",
+    "express": "^5.2.1",
+    "tslog": "^4.10.2",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "zod": "^4.4.3"
+  }
+}
