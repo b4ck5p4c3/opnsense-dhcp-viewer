@@ -31,9 +31,9 @@
     }
 
     .error {
-      color: #842029;
-      background-color: #f8d7da;
-      border: 1px solid #f5c2c7;
+      color: hsl(0 100% 20%);
+      background-color: hsl(0 100% 90%);
+      border: 1px solid hsl(0 100% 80%);
       padding: 10px;
       display: flex;
       flex-direction: column;
@@ -128,6 +128,16 @@
 
       .entry-offline>td {
         background-color: hsl(0 100% 15%);
+      }
+
+      .error {
+        border: 1px solid hsl(0 100% 30%);
+        background-color: hsl(0 100% 20%);
+      }
+
+      .error>* {
+        color: hsl(0 100% 80%);
+        background-color: hsl(0 100% 20%);
       }
     }
   </style>
