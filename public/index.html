@@ -100,11 +100,11 @@
       text-align: center;
     }
 
-    .vendor-text {
+    .small-text {
       font-size: x-small;
     }
 
-    .mac-td>div {
+    .multi-td>div {
       background-color: transparent;
     }
 
@@ -180,6 +180,7 @@
             <th>MAC</th>
             <th>Started</th>
             <th>Description</th>
+            <th>WiFi</th>
           </tr>
         </thead>
         <tbody id="table-body">
@@ -220,7 +221,12 @@
         return element
       }
 
-      function showEntries(entries) {
+      function showEntries(entries, wifiClients) {
+        const parsedWifiClients = {}
+        for (const client of wifiClients) {
+          parsedWifiClients[client.mac] = client
+        }
+
         entries.sort((a, b) => (-(a.startedAt ?? '').localeCompare(b.startedAt ?? '')) || a.network.localeCompare(b.network))
         tableBody.innerHTML = ''
         for (const entry of entries) {
@@ -229,44 +235,74 @@
           tr.appendChild(createTD(entry.ip))
           tr.appendChild(createTD(entry.network === 'internal' ? '🏠' : (entry.network === 'guest' ? '👥' : entry.network), true))
           tr.appendChild(createTD(entry.hostname))
+
           const macTd = document.createElement('td')
-          macTd.classList.add('mac-td')
+          macTd.classList.add('multi-td')
           const macText = document.createElement('div')
           macText.innerText = entry.mac
           macTd.appendChild(macText)
           const vendorText = document.createElement('div')
-          vendorText.classList.add('vendor-text')
-          vendorText.append(entry.ouiVendor)
+          vendorText.classList.add('small-text')
+          vendorText.innerText = entry.ouiVendor
           macTd.appendChild(vendorText)
           tr.appendChild(macTd)
+
           tr.appendChild(createTD(entry.startedAt ? new Date(entry.startedAt).toLocaleString() : '-'))
           tr.appendChild(createTD(entry.description))
           tr.classList.add(entry.isOnline ? 'entry-online' : 'entry-offline')
           tableBody.appendChild(tr)
+
+          const wifiClient = parsedWifiClients[entry.mac]
+          if (wifiClient) {
+            const wifiTd = document.createElement('td')
+            wifiTd.classList.add('multi-td')
+            const essidText = document.createElement('div')
+            essidText.innerText = `📡 ${wifiClient.essid}`
+            wifiTd.appendChild(essidText)
+            const apText = document.createElement('div')
+            apText.classList.add('small-text')
+            apText.innerText = wifiClient.ap
+            wifiTd.appendChild(apText)
+            tr.appendChild(wifiTd)
+          } else {
+            tr.appendChild(createTD('🌐'))
+          }
         }
         show(tableBlock)
       }
 
-      function fetchLeases() {
+      async function fetchLeases() {
         refreshButton.setAttribute('disabled', 'disabled')
         hide(errorBlock)
         hide(tableBlock)
         show(loadingBlock)
 
-        fetch('/api/leases')
-          .then(response => response.json())
-          .then(response => {
-            if ('error' in response) {
-              showError(response.error)
+        try {
+          const [leasesResponse, unifiResponse] = await Promise.allSettled([fetch('/api/leases'), fetch('/api/unifi')])
+          let leases = null
+          if (leasesResponse.status === 'rejected') {
+            throw leasesResponse.reason
+          }
+          if (leasesResponse.value.status !== 200) {
+            throw new Error(`Failed to fetch leases: ${leasesResponse.value.status} ${await leasesResponse.value.text()}`)
+          }
+          leases = await leasesResponse.value.json()
+          let unifiClients = null
+          if (unifiResponse.status === 'fulfilled') {
+            if (unifiResponse.value.status === 200) {
+              unifiClients = await unifiResponse.value.json()
             } else {
-              showEntries(response)
+              console.error(`unifi error: ${unifiResponse.value.status} ${await unifiResponse.value.text()}`)
             }
-          })
-          .catch(error => showError(error))
-          .finally(() => {
-            hide(loadingBlock)
-            refreshButton.removeAttribute('disabled')
-          })
+          }
+          showEntries(leases, unifiClients)
+        } catch (error) {
+          console.info(error)
+          showError(error)
+        } finally {
+          hide(loadingBlock)
+          refreshButton.removeAttribute('disabled')
+        }
       }
 
       refreshButton.addEventListener('click', () => fetchLeases())
