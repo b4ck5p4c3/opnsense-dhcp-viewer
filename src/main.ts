@@ -12,9 +12,9 @@ const logger = getLogger()
 const environment = getEnvironment()
 
 const unifiApi = new UnifiAPI({
-  password: environment.UNIFI_CONTROLLER_PASSWORD,
+  siteId: environment.UNIFI_SITE_ID,
+  token: environment.UNIFI_TOKEN,
   url: environment.UNIFI_CONTROLLER_URL,
-  username: environment.UNIFI_CONTROLLER_USERNAME
 })
 
 const app = express()
@@ -98,11 +98,7 @@ app.get('/api/unifi', async (_, response) => {
   try {
     const clients = await unifiApi.getActiveClients()
 
-    response.status(200).json(clients.map(client => ({
-      ap: client.last_uplink_name,
-      essid: client.essid,
-      mac: client.mac
-    })))
+    response.status(200).json(clients)
   } catch (error) {
     response.status(500).json({
       error: String(error)

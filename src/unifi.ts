@@ -1,67 +1,109 @@
 import z from 'zod'
 
+import { getLogger } from './logger'
+
+const logger = getLogger()
+
 export interface UnifiAPIConfig {
-  password: string
+  siteId: string
+  token: string
   url: string
-  username: string
 }
 
-const unifiClientInfosType = z.array(z.object({
-  essid: z.string(),
-  last_uplink_name: z.string(),
-  mac: z.string()
-}))
+function paginatedResponseType<T extends z.ZodTypeAny> (dataType: T) {
+  return z.object({
+    data: z.array(dataType),
+    totalCount: z.number()
+  })
+}
 
-export type UnifiClientInfos = z.infer<typeof unifiClientInfosType>
+const clientOverviewType = z.object({
+  macAddress: z.string().optional(),
+  name: z.string(),
+  type: z.enum(['WIRED', 'WIRELESS', 'VPN', 'TELEPORT']),
+  uplinkDeviceId: z.string().optional()
+})
+
+const adoptedDeviceOverviewType = z.object({
+  id: z.string(),
+  name: z.string()
+})
+
+// broadcastingDeviceFilter is null when a WiFi broadcast is beamed from every AP on the site
+const wifiBroadcastOverviewType = z.object({
+  broadcastingDeviceFilter: z.object({
+    deviceIds: z.array(z.string()).optional(),
+    type: z.string()
+  }).nullable().optional(),
+  name: z.string()
+})
+
+export interface UnifiClientInfo {
+  ap: null | string
+  essid: null | string
+  mac: string
+}
+
+export type UnifiClientInfos = UnifiClientInfo[]
 
 export class UnifiAPI {
   constructor (private readonly config: UnifiAPIConfig) {}
 
   async getActiveClients (): Promise<UnifiClientInfos> {
-    const cookie = await this.login()
-    const response = await fetch(`${this.config.url}/v2/api/site/default/clients/active`, {
-      headers: {
-        cookie
-      }
-    })
-    if (response.status !== 200) {
-      throw new Error(`failed to fetch unifi active clients: ${response.status}`)
-    }
-    return unifiClientInfosType.parse(await response.json())
+    const [clients, devices, broadcasts] = await Promise.all([
+      this.fetchAllPages(`/v1/sites/${this.config.siteId}/clients`, clientOverviewType),
+      this.fetchAllPages(`/v1/sites/${this.config.siteId}/devices`, adoptedDeviceOverviewType),
+      this.fetchAllPages(`/v1/sites/${this.config.siteId}/wifi/broadcasts`, wifiBroadcastOverviewType)
+    ])
+
+    const deviceNameById = new Map(devices.map(device => [device.id, device.name]))
+
+    return clients
+      .filter((client): client is z.infer<typeof clientOverviewType> & { macAddress: string } =>
+        client.type === 'WIRELESS' && client.macAddress !== undefined)
+      .map(client => {
+        const apDeviceId = client.uplinkDeviceId
+        const apName = apDeviceId === undefined ? undefined : deviceNameById.get(apDeviceId)
+        const essid = broadcasts.find(broadcast => {
+          const deviceFilter = broadcast.broadcastingDeviceFilter
+          const appliesToApDevice = apDeviceId !== undefined && deviceFilter?.deviceIds?.includes(apDeviceId) === true
+          return deviceFilter == null || appliesToApDevice
+        })?.name
+
+        return {
+          ap: apName ?? null,
+          essid: essid ?? null,
+          mac: client.macAddress
+        }
+      })
   }
 
-  private async login (): Promise<string> {
-    const response = await fetch(`${this.config.url}/api/login`, {
-      body: JSON.stringify({
-        password: this.config.password,
-        username: this.config.username
-      }),
-      headers: {
-        'content-type': 'application/json'
-      },
-      method: 'POST'
-    })
-    if (response.status === 200) {
-      const data = await response.json()
-      if (data.meta.rc === 'ok') {
-        return parseUniFiSessionCookie(response.headers.getSetCookie())
-      } else {
-        throw new Error(`failed to login to UniFi controller: ${JSON.stringify(response.status)} / ${JSON.stringify(data)}`)
+  private async fetchAllPages<T> (path: string, dataType: z.ZodType<T>): Promise<T[]> {
+    const pageType = paginatedResponseType(dataType)
+    const results: T[] = []
+    const limit = 200 // Max per UniFi API
+    let offset = 0
+    for (;;) {
+      const url = new URL(`${this.config.url}/proxy/network/integration${path}`)
+      url.searchParams.set('offset', String(offset))
+      url.searchParams.set('limit', String(limit))
+      const response = await fetch(url, {
+        headers: {
+          'X-API-Key': this.config.token
+        }
+      })
+      if (response.status !== 200) {
+        const body = await response.text()
+        logger.error(`unifi request failed: GET ${url.toString()} -> ${response.status}: ${body}`)
+        throw new Error(`failed to fetch ${path}: ${response.status}: ${body}`)
+      }
+      const page = pageType.parse(await response.json())
+      results.push(...page.data)
+      offset += page.data.length
+      if (page.data.length === 0 || offset >= page.totalCount) {
+        break
       }
     }
-    throw new Error(`failed to login to UniFi controller: ${JSON.stringify(response.status)}`)
+    return results
   }
-}
-
-function parseUniFiSessionCookie (cookies: string[]): string {
-  for (const cookie of cookies) {
-    if (cookie.startsWith('unifises=')) {
-      const part = cookie.split(';')[0]
-      if (!part) {
-        continue
-      }
-      return part
-    }
-  }
-  throw new Error(`unifises cookie not found: ${JSON.stringify(cookies)}`)
 }

@@ -223,7 +223,7 @@
 
       function showEntries(entries, wifiClients) {
         const parsedWifiClients = {}
-        for (const client of wifiClients) {
+        for (const client of wifiClients ?? []) {
           parsedWifiClients[client.mac] = client
         }
 

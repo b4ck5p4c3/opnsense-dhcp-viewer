@@ -15,9 +15,9 @@ const environmentType = z.object({
   OPNSENSE_URL: z.url(),
   PORT: z.string().default('3000').transform(Number),
 
-  UNIFI_CONTROLLER_PASSWORD: z.string(),
   UNIFI_CONTROLLER_URL: z.url(),
-  UNIFI_CONTROLLER_USERNAME: z.string()
+  UNIFI_SITE_ID: z.string(),
+  UNIFI_TOKEN: z.string()
 })
 
 export type Environment = z.infer<typeof environmentType>
